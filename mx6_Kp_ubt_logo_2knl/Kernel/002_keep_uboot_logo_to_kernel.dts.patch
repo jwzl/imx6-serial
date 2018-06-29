@@ -1,0 +1,52 @@
+diff --git a/arch/arm/boot/dts/imx6qp-rom7421-a1.dts b/arch/arm/boot/dts/imx6qp-rom7421-a1.dts
+old mode 100644
+new mode 100755
+index bfd0f76..b7c537b
+--- a/arch/arm/boot/dts/imx6qp-rom7421-a1.dts
++++ b/arch/arm/boot/dts/imx6qp-rom7421-a1.dts
+@@ -485,14 +485,14 @@
+ 	};
+ };
+ 
+-&hdmi_core {
+-	ipu_id = <0>; 
+-	disp_id = <0>; 
+-};
+-
+ &ldb {
++	lvds-channel@0 {
++		primary;	
++		crtc = "ipu1-di0";
++	};
++	
+ 	lvds-channel@1 {
+-		crtc = "ipu2-di1";
++		status = "disabled";
+ 	};
+ };
+ 
+@@ -504,8 +504,24 @@
+ 
+ &mxcfb1 {
+ 	prefetch;
++	late_init = <1>;
++	fb_base = <0x27800000>;  /* Frame buffer base address, it is same as CONFIG_FB_BASE in Uboot. */
++	fb_size = <0x01800000>;  /* Reserved display memory size, bigger than 3 x framer buffer size. */
++	status = "okay";
++};
++/*
++* HDMI
++*/
++&hdmi_core {
++	ipu_id = <1>;
++	disp_id = <0>;
+ 	status = "okay";
+ };
++ 
++&ipu1 {
++	status = "okay";
++};
++
+ 
+ &mxcfb3 {
+ 	prefetch;

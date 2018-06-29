@@ -1,0 +1,116 @@
+diff --git a/drivers/video/backlight/backlight.c b/drivers/video/backlight/backlight.c
+old mode 100644
+new mode 100755
+index c504801..8e728af
+--- a/drivers/video/backlight/backlight.c
++++ b/drivers/video/backlight/backlight.c
+@@ -32,11 +32,9 @@ static const char *const backlight_types[] = {
+ };
+ 
+ #if defined(CONFIG_OF) && defined(CONFIG_ARCH_ADVANTECH)
+-#ifndef CONFIG_MX6_CLK_FOR_BOOTUI_TRANS
+ extern int first_power_on;
+ extern void enable_ldb_bkl_pwm(void);
+ #endif
+-#endif
+ 
+ #if defined(CONFIG_FB) || (defined(CONFIG_FB_MODULE) && \
+ 			   defined(CONFIG_BACKLIGHT_CLASS_DEVICE_MODULE))
+@@ -70,7 +68,6 @@ static int fb_notifier_callback(struct notifier_block *self,
+ 					bd->props.fb_blank = FB_BLANK_UNBLANK;
+ 
+ #if defined(CONFIG_OF) && defined(CONFIG_ARCH_ADVANTECH)
+-#ifndef CONFIG_MX6_CLK_FOR_BOOTUI_TRANS
+ 					if(first_power_on)
+ 						printk(KERN_INFO "[LVDS Sequence] 3 Start to enable LVDS pwm.\n");
+ 
+@@ -82,9 +79,7 @@ static int fb_notifier_callback(struct notifier_block *self,
+ 						enable_ldb_bkl_pwm();
+ 						first_power_on = 0;
+ 					}
+-#else
+-					backlight_update_status(bd);
+-#endif
++
+ #else
+ 					backlight_update_status(bd);
+ #endif
+diff --git a/drivers/video/backlight/pwm_bl.c b/drivers/video/backlight/pwm_bl.c
+index 54b36ee..46612e5 100755
+--- a/drivers/video/backlight/pwm_bl.c
++++ b/drivers/video/backlight/pwm_bl.c
+@@ -137,7 +137,6 @@ static const struct backlight_ops pwm_backlight_ops = {
+ 
+ #ifdef CONFIG_ARCH_ADVANTECH
+ int lvds_vcc_enable;
+-#ifndef CONFIG_MX6_CLK_FOR_BOOTUI_TRANS
+ int lvds_bkl_enable;
+ int lvds_vcc_delay_value;
+ int lvds_bkl_delay_value;
+@@ -180,7 +179,6 @@ void enable_ldb_bkl_pwm(void)
+ 	}
+ }
+ #endif
+-#endif
+ 
+ static int pwm_backlight_parse_dt(struct device *dev,
+ 				  struct platform_pwm_backlight_data *data)
+@@ -234,7 +232,6 @@ static int pwm_backlight_parse_dt(struct device *dev,
+ 	 *       added.
+ 	 */
+ #ifdef CONFIG_ARCH_ADVANTECH
+-#ifndef CONFIG_MX6_CLK_FOR_BOOTUI_TRANS
+ 	lvds_vcc_enable = of_get_named_gpio_flags(node, "lvds-vcc-enable", 0, &lvds_vcc_flag);
+ 	lvds_bkl_enable = of_get_named_gpio_flags(node, "lvds-bkl-enable", 0, &lvds_bkl_flag);
+ 	ret = of_property_read_u32(node,"lvds-vcc-delay-time",&lvds_vcc_delay_value);
+@@ -248,7 +245,6 @@ static int pwm_backlight_parse_dt(struct device *dev,
+ 		lvds_bkl_delay_value = 20;
+ 	}
+ #endif
+-#endif
+ 
+ 	return 0;
+ }
+@@ -400,13 +396,11 @@ static int pwm_backlight_probe(struct platform_device *pdev)
+ 	bl->props.brightness = data->dft_brightness;
+ 
+ #if defined(CONFIG_OF) && defined(CONFIG_ARCH_ADVANTECH)
+-#ifndef CONFIG_MX6_CLK_FOR_BOOTUI_TRANS
+ 	/* Inorder to power off pwm backlight for SI test */
+ 	bl->props.fb_blank = FB_BLANK_NORMAL;
+ 
+ 	printk(KERN_INFO "[LVDS Sequence] 0 Set to power off pwm backlight at first.\n");
+ #endif
+-#endif
+ 
+ 	backlight_update_status(bl);
+ 
+diff --git a/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c b/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c
+index c64162e..e2915fe 100755
+--- a/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c
++++ b/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c
+@@ -3875,7 +3875,6 @@ static int mxcfb_probe(struct platform_device *pdev)
+ 	}
+ 
+ #if defined(CONFIG_OF) && defined(CONFIG_ARCH_ADVANTECH)
+-#ifndef CONFIG_MX6_CLK_FOR_BOOTUI_TRANS
+ 	if(first_power_on) {
+ 		printk(KERN_INFO "[LVDS Sequence] 1 Start to enable LVDS VDD.\n");
+ 
+@@ -3884,7 +3883,6 @@ static int mxcfb_probe(struct platform_device *pdev)
+ 		printk(KERN_INFO "[LVDS Sequence] 2 Start to enable LVDS signal.\n");
+ 	}
+ #endif
+-#endif
+ 
+ 	/* Initialize FB structures */
+ 	fbi = mxcfb_init_fbinfo(&pdev->dev, &mxcfb_ops);
+@@ -3909,6 +3907,8 @@ static int mxcfb_probe(struct platform_device *pdev)
+ 		mxcfbi->late_init = 1;
+ 		plat_data->late_init = 1;
+ 		mxcfbi->late_init_idmac_done = false;
++		/* We have enabled the backlight*/
++		first_power_on = 0;
+ 	}else {
+ 		plat_data->late_init = 0;
+ 		mxcfbi->late_init = 0;
