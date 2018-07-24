@@ -1,0 +1,100 @@
+diff --git a/arch/arm/boot/dts/imx6qp-rom7421-a1.dts b/arch/arm/boot/dts/imx6qp-rom7421-a1.dts
+index f8ff752..5d1e5d2 100755
+--- a/arch/arm/boot/dts/imx6qp-rom7421-a1.dts
++++ b/arch/arm/boot/dts/imx6qp-rom7421-a1.dts
+@@ -491,11 +491,41 @@
+ };
+ 
+ &ldb {
++	split-mode;
++
++	lvds-channel@0 {
++    	crtc = "ipu2-di0";
++		primary;
++        status = "okay";
++
++		display-timings {
++			native-mode = <&timing50>;
++			timing50: g070vw0yuyu {
++				clock-frequency = <144000000>;
++				hactive = <1920>;
++				vactive = <1080>;
++				hback-porch = <120>;
++				hfront-porch = <120>;
++				vback-porch = <20>;
++				vfront-porch = <20>;
++				hsync-len = <32>;
++				vsync-len = <5>;
++			}; 
++		};
++     };
++
+ 	lvds-channel@1 {
+-		crtc = "ipu2-di1";
++		crtc = "ipu2-di0";
++		status = "okay";
+ 	};
+ };
+ 
++&dcic2 {
++	dcic_id = <1>;
++	dcic_mux = "dcic-lvds";
++	status = "okay";
++};
++
+ &mipi_csi {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_mipi_csi_1>;
+diff --git a/drivers/video/fbdev/mxc/mxc_hdmi.c b/drivers/video/fbdev/mxc/mxc_hdmi.c
+index ff7f847..5b05319 100755
+--- a/drivers/video/fbdev/mxc/mxc_hdmi.c
++++ b/drivers/video/fbdev/mxc/mxc_hdmi.c
+@@ -2385,13 +2385,22 @@ static int mxc_hdmi_fb_event(struct notifier_block *nb,
+ 	return 0;
+ }
+ 
++extern  u8  hdmi_is_clone;
+ static void hdmi_init_route(struct mxc_hdmi *hdmi)
+ {
+ 	uint32_t hdmi_mux_setting, reg;
+ 	int ipu_id, disp_id;
+ 
+-	ipu_id = mxc_hdmi_ipu_id;
+-	disp_id = mxc_hdmi_disp_id;
++	if( hdmi_is_clone){
++		/* This is fixed. and device tree  hdmi's  ipu id & di 
++		*	should be 1 , 0.   Others ipu id has some problem.
++		*/
++		ipu_id =1;	
++		disp_id =0;	
++	}else {
++		ipu_id = mxc_hdmi_ipu_id;
++		disp_id = mxc_hdmi_disp_id;
++	}
+ 
+ 	if ((ipu_id > 1) || (ipu_id < 0)) {
+ 		pr_err("Invalid IPU select for HDMI: %d. Set to 0\n", ipu_id);
+diff --git a/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c b/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c
+old mode 100644
+new mode 100755
+index 3afbada..ac919c9
+--- a/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c
++++ b/drivers/video/fbdev/mxc/mxc_ipuv3_fb.c
+@@ -3084,6 +3084,7 @@ static int mxcfb_dispdrv_init(struct platform_device *pdev,
+ EXPORT_SYMBOL_GPL(fb_vga_fix_id);
+ #endif
+ 
++u8  hdmi_is_clone = 0;
+ /*
+  * Parse user specified options (`video=trident:')
+  * example:
+@@ -3173,6 +3174,9 @@ static int mxcfb_option_setup(struct platform_device *pdev, struct fb_info *fbi)
+ 			fb_pix_fmt = bpp_to_pixfmt(pdata->default_bpp);
+ 			if (fb_pix_fmt)
+ 				pixfmt_to_var(fb_pix_fmt, &fbi->var);
++		} else if (!strncmp(opt, "clone", 5)) {
++			if(!strncmp(pdata->disp_dev, "hdmi", 4))
++				hdmi_is_clone = 1;
+ 		} else
+ 			fb_mode_str = opt;
+ 	}
